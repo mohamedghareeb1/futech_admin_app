@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:just_audio/just_audio.dart';
+import 'config.dart';
 
 void main() {
   runApp(FutechAdminApp());
@@ -29,7 +30,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   List<String> users = [];
-  String baseUrl = "http://YOUR_SERVER_IP:5000";
 
   @override
   void initState() {
@@ -38,7 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> fetchUsers() async {
-    final res = await http.get(Uri.parse("\$baseUrl/support-users"));
+    final res = await http.get(Uri.parse(AppConfig.supportUsersUrl));
     if (res.statusCode == 200) {
       List<dynamic> data = json.decode(res.body);
       setState(() {
@@ -63,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => ChatScreen(userId: userId, baseUrl: baseUrl)),
+                  MaterialPageRoute(builder: (_) => ChatScreen(userId: userId)),
                 );
               },
             );
@@ -76,8 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 class ChatScreen extends StatefulWidget {
   final String userId;
-  final String baseUrl;
-  ChatScreen({required this.userId, required this.baseUrl});
+  ChatScreen({required this.userId});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -95,7 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> fetchMessages() async {
-    final res = await http.get(Uri.parse("\${widget.baseUrl}/support-messages?user_id=\${widget.userId}"));
+    final res = await http.get(Uri.parse(AppConfig.supportMessagesUrl(widget.userId)));
     if (res.statusCode == 200) {
       List<dynamic> data = json.decode(res.body);
       setState(() {
@@ -106,7 +105,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> sendMessage(String text) async {
     final res = await http.post(
-      Uri.parse("\${widget.baseUrl}/admin-reply"),
+      Uri.parse(AppConfig.adminReplyUrl),
       headers: {"Content-Type": "application/json"},
       body: json.encode({"user_id": widget.userId, "message": text}),
     );
@@ -124,18 +123,18 @@ class _ChatScreenState extends State<ChatScreen> {
       content = IconButton(
         icon: Icon(Icons.play_arrow),
         onPressed: () async {
-          await player.setUrl("\${widget.baseUrl}\$text");
+          await player.setUrl("${AppConfig.baseUrl}$text");
           player.play();
         },
       );
     } else if (text.startsWith("/static/attachments/")) {
       if (text.endsWith(".jpg") || text.endsWith(".png") || text.endsWith(".jpeg") || text.endsWith(".gif")) {
-        content = Image.network("\${widget.baseUrl}\$text", height: 150);
+        content = Image.network("${AppConfig.baseUrl}$text", height: 150);
       } else {
         content = TextButton(
           child: Text("📎 Download Attachment"),
           onPressed: () async {
-            final url = "\${widget.baseUrl}\$text";
+            final url = "${AppConfig.baseUrl}$text";
             if (await canLaunch(url)) {
               await launch(url);
             }
@@ -162,7 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Chat: \${widget.userId}")),
+      appBar: AppBar(title: Text("Chat: ${widget.userId}")),
       body: Column(
         children: [
           Expanded(
